@@ -3,6 +3,7 @@ package scrape
 import (
 	"encoding/xml"
 	"errors"
+	"net/url"
 )
 
 const SitemapXMLNamespace = "http://www.sitemaps.org/schemas/sitemap/0.9"
@@ -36,7 +37,15 @@ type SitemapURL struct {
 // An error will be thrown if the url is invalid or
 // the site can not be reached for any reason. Partial
 // sitemaps will not be returned.
-func Site(url string) (*Sitemap, error) {
+func Site(site string) (*Sitemap, error) {
+	if site == "" {
+		return nil, ErrURLInvalid
+	}
+	_, err := url.Parse(site)
+	if err != nil {
+		return nil, ErrURLInvalid
+	}
+
 	// TODO dynamically generate sitemap
 	return &Sitemap{
 		XMLNS: SitemapXMLNamespace,
