@@ -1,8 +1,17 @@
 package scrape
 
-import "encoding/xml"
+import (
+	"encoding/xml"
+	"errors"
+)
 
 const SitemapXMLNamespace = "http://www.sitemaps.org/schemas/sitemap/0.9"
+
+var (
+	// ErrURLInvalid is given when the URL provided to the 'Site'
+	// method is empty or invalid
+	ErrURLInvalid = errors.New("The given URL is invalid")
+)
 
 // Sitemap represents a heirachy of pages within a webiste
 type Sitemap struct {
