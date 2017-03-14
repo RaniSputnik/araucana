@@ -36,18 +36,18 @@ func main() {
 var sitemapHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	site := q.Get("site")
-	// TODO the sitemap tool should validate the site parameter
-	if site == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("Required parameter 'site' is invalid"))
-		return
-	}
 
 	sitemap, err := scrape.Site(site)
 	if err != nil {
 		// TODO handle error codes
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("500 internal server error"))
+		// - report when couldn't reach the input site
+		if err == scrape.ErrURLInvalid {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("Required parameter 'site' is invalid"))
+		} else {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("500 internal server error"))
+		}
 		return
 	}
 
