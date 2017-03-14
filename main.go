@@ -5,6 +5,9 @@ import (
 	"net/http"
 	"time"
 
+	"encoding/xml"
+
+	"github.com/RaniSputnik/araucana/scrape"
 	"github.com/gorilla/mux"
 )
 
@@ -40,6 +43,23 @@ var sitemapHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	// TODO generate sitemap
-	w.WriteHeader(http.StatusNotImplemented)
+	sitemap, err := scrape.Site(site)
+	if err != nil {
+		// TODO handle error codes
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("500 internal server error"))
+		return
+	}
+
+	resBytes, err := xml.Marshal(sitemap)
+	if err != nil {
+		// TODO helper method for 500's? OR do we panic and recover in middleware
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("500 internal server error"))
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/xml")
+	w.WriteHeader(http.StatusOK)
+	w.Write(resBytes)
 })
