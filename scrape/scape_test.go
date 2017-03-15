@@ -89,6 +89,30 @@ func TestExternalLinksAreNotScraped(t *testing.T) {
 	ensureSitemapsMatch(t, sitemap, expected)
 }
 
+func TestHashAndQueryStringAreIgnored(t *testing.T) {
+	addr := ":3000"
+	srv := setupStaticFileServer("test/basic3", addr)
+	defer srv.Close()
+
+	expected := &Sitemap{
+		XMLNS: SitemapXMLNamespace,
+		URLSet: []*SitemapURL{
+			&SitemapURL{
+				Loc: "http://localhost:3000/index.html",
+			},
+			&SitemapURL{
+				Loc: "http://localhost:3000/contact.html",
+			},
+		},
+	}
+	sitemap, err := Site("http://localhost:3000/index.html")
+
+	if err != nil {
+		t.Errorf("Expected no error but got '%v'", err)
+	}
+	ensureSitemapsMatch(t, sitemap, expected)
+}
+
 func TestTargetSite404ResultsInError(t *testing.T) {
 	addr := ":3000"
 	srv := setupStaticFileServer("test/basic", addr)
