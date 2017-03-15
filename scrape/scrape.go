@@ -15,6 +15,10 @@ var (
 	// ErrURLInvalid is given when the URL provided to the 'Site'
 	// method is empty or invalid
 	ErrURLInvalid = errors.New("The given URL is invalid")
+
+	// ErrHTTPError is given when the URL provided results in a
+	// HTTP error code.
+	ErrHTTPError = errors.New("The given URL gave a http error code")
 )
 
 // Sitemap represents a heirachy of pages within a webiste

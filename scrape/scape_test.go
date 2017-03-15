@@ -1,7 +1,6 @@
 package scrape_test
 
 import (
-	"log"
 	"net/http"
 	"testing"
 
@@ -45,6 +44,18 @@ func TestTargetSiteIsSinglePage(t *testing.T) {
 	ensureSitemapsMatch(t, sitemap, expected)
 }
 
+func TestTargetSite404ResultsInError(t *testing.T) {
+	addr := ":3000"
+	srv := setupStaticFileServer("test/basic", addr)
+	defer srv.Close()
+
+	_, err := Site("http://localhost:3000/doesnotexist.html")
+
+	if err != ErrHTTPError {
+		t.Errorf("Expected '%v' but got '%v'", ErrHTTPError, err)
+	}
+}
+
 func setupStaticFileServer(dir string, addr string) *http.Server {
 	srv := &http.Server{
 		Handler: http.FileServer(http.Dir(dir)),
@@ -52,7 +63,7 @@ func setupStaticFileServer(dir string, addr string) *http.Server {
 	}
 
 	go func(srv *http.Server) {
-		log.Fatal(srv.ListenAndServe())
+		srv.ListenAndServe()
 	}(srv)
 
 	return srv
