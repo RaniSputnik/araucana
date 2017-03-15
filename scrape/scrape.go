@@ -89,8 +89,7 @@ func (s *scraper) Scrape(addr string) error {
 	// TODO never ever use the default client in production
 	response, err := http.Get(addr)
 	if err != nil {
-		// TODO return defined error
-		return err
+		return ErrHTTPError
 	}
 
 	if httpStatusIsError(response.StatusCode) {
