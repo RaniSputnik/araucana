@@ -85,6 +85,8 @@ type scraper struct {
 }
 
 func (s *scraper) Scrape(addr string) error {
+	// TODO provide context to method so timeout can be provided
+	// TODO limit the recursion to a fixed max
 	s.results[addr] = &SitemapURL{
 		Loc: addr,
 	}
@@ -106,13 +108,20 @@ func (s *scraper) Scrape(addr string) error {
 		return err
 	}
 
+	// TODO reduce the nesting here
 	var f func(*html.Node)
 	f = func(n *html.Node) {
 		if n.Type == html.ElementNode && n.Data == "a" {
 			if ok, href := getHref(n); ok {
 				if href, err := s.GetFullURL(href); err == nil {
 					if _, ok := s.results[href]; !ok {
-						s.Scrape(href)
+						// TODO url parse here is rubbish, we already parse the URL in 'GetFullURL'
+						parsedHref, _ := url.Parse(href)
+						if parsedHref.Host == s.rootURL.Host {
+							s.Scrape(href)
+						} else {
+							log.Printf("External link will not be followed '%s'", href)
+						}
 					} else {
 						// TODO use logger on scraper
 						log.Printf("We've already scraped '%s'", href)
