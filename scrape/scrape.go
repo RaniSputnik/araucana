@@ -93,6 +93,10 @@ func (s *scraper) Scrape(addr string) error {
 		return err
 	}
 
+	if httpStatusIsError(response.StatusCode) {
+		return ErrHTTPError
+	}
+
 	_, err = html.Parse(response.Body)
 	if err != nil {
 		// TODO return defined error
@@ -102,4 +106,8 @@ func (s *scraper) Scrape(addr string) error {
 	// TODO read the body and scrape again
 
 	return nil
+}
+
+func httpStatusIsError(status int) bool {
+	return status == 0 || status >= 400
 }
