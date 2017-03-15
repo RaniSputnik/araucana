@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"os"
 
 	"golang.org/x/net/html"
 )
@@ -59,6 +60,7 @@ func Site(site string) (*Sitemap, error) {
 	s := &scraper{
 		rootURL: siteURL,
 		results: map[string]*SitemapURL{},
+		logger:  log.New(os.Stdout, "", log.LstdFlags),
 	}
 	if err = s.Scrape(siteURL.String()); err != nil {
 		return nil, err
@@ -82,6 +84,7 @@ func Site(site string) (*Sitemap, error) {
 type scraper struct {
 	rootURL *url.URL
 	results map[string]*SitemapURL
+	logger  *log.Logger
 }
 
 func (s *scraper) Scrape(addr string) error {
@@ -90,7 +93,7 @@ func (s *scraper) Scrape(addr string) error {
 	s.results[addr] = &SitemapURL{
 		Loc: addr,
 	}
-	log.Printf("Scraping %s", addr)
+	s.logger.Printf("Scraping %s", addr)
 
 	// TODO never ever use the default client in production
 	response, err := http.Get(addr)
@@ -108,33 +111,9 @@ func (s *scraper) Scrape(addr string) error {
 		return err
 	}
 
-	// TODO reduce the nesting here
 	var f func(*html.Node)
 	f = func(n *html.Node) {
-		if n.Type == html.ElementNode && n.Data == "a" {
-			if ok, href := getHref(n); ok {
-				if href, err := s.GetFullURL(href); err == nil {
-					if _, ok := s.results[href]; !ok {
-						// TODO url parse here is rubbish, we already parse the URL in 'GetFullURL'
-						parsedHref, _ := url.Parse(href)
-						if parsedHref.Host == s.rootURL.Host {
-							s.Scrape(href)
-						} else {
-							log.Printf("External link will not be followed '%s'", href)
-						}
-					} else {
-						// TODO use logger on scraper
-						log.Printf("We've already scraped '%s'", href)
-					}
-				} else {
-					// TODO use logger on scraper
-					log.Printf("<a> tag has a href attribute (%s) we can't parse: '%v'", href, err)
-				}
-			} else {
-				// TODO use logger on scraper
-				log.Printf("<a> tag appears to have no 'href' attribute")
-			}
-		}
+		s.followLinkIfExistsInNode(n)
 		for c := n.FirstChild; c != nil; c = c.NextSibling {
 			f(c)
 		}
@@ -144,10 +123,42 @@ func (s *scraper) Scrape(addr string) error {
 	return nil
 }
 
-func (s *scraper) GetFullURL(val string) (string, error) {
+func (s *scraper) followLinkIfExistsInNode(n *html.Node) {
+	if n.Type != html.ElementNode || n.Data != "a" {
+		// Skip this node, it's not an <a> tag
+		return
+	}
+	ok, href := getHref(n)
+	if !ok {
+		s.logger.Printf("<a> tag appears to have no 'href' attribute")
+		return
+	}
+
+	parsedHref, err := s.GetFullURL(href)
+	if err != nil {
+		s.logger.Printf("<a> tag has a href attribute (%s) we can't parse: '%v'", href, err)
+		return
+	}
+
+	if parsedHref.Host != s.rootURL.Host {
+		s.logger.Printf("External link will not be followed '%s'", href)
+		return
+	}
+
+	href = parsedHref.String()
+	if _, ok := s.results[href]; ok {
+		s.logger.Printf("We've already scraped '%s'", href)
+		return
+	}
+
+	// All the checks have run, we can safely scrape now
+	s.Scrape(href)
+}
+
+func (s *scraper) GetFullURL(val string) (*url.URL, error) {
 	parsedVal, err := url.Parse(val)
 	if err != nil {
-		return val, err
+		return nil, err
 	}
 
 	if parsedVal.Scheme == "" {
@@ -157,7 +168,7 @@ func (s *scraper) GetFullURL(val string) (string, error) {
 		parsedVal.Host = s.rootURL.Host
 	}
 
-	return parsedVal.String(), nil
+	return parsedVal, nil
 }
 
 func getHref(t *html.Node) (ok bool, href string) {
