@@ -3,6 +3,7 @@ package scrape
 import (
 	"encoding/xml"
 	"errors"
+	"log"
 	"net/http"
 	"net/url"
 
@@ -56,6 +57,7 @@ func Site(site string) (*Sitemap, error) {
 
 	// Run the scraping of the site
 	s := &scraper{
+		rootURL: siteURL,
 		results: map[string]*SitemapURL{},
 	}
 	if err = s.Scrape(siteURL.String()); err != nil {
@@ -78,6 +80,7 @@ func Site(site string) (*Sitemap, error) {
 }
 
 type scraper struct {
+	rootURL *url.URL
 	results map[string]*SitemapURL
 }
 
@@ -96,15 +99,66 @@ func (s *scraper) Scrape(addr string) error {
 		return ErrHTTPError
 	}
 
-	_, err = html.Parse(response.Body)
+	doc, err := html.Parse(response.Body)
 	if err != nil {
 		// TODO return defined error
 		return err
 	}
 
-	// TODO read the body and scrape again
+	var f func(*html.Node)
+	f = func(n *html.Node) {
+		if n.Type == html.ElementNode && n.Data == "a" {
+			if ok, href := getHref(n); ok {
+				if href, err := s.GetFullURL(href); err == nil {
+					if _, ok := s.results[href]; !ok {
+						s.Scrape(href)
+					} else {
+						// TODO use logger on scraper
+						log.Printf("We've already scraped '%s'", href)
+					}
+				} else {
+					// TODO use logger on scraper
+					log.Printf("<a> tag has a href attribute (%s) we can't parse: '%v'", href, err)
+				}
+			} else {
+				// TODO use logger on scraper
+				log.Printf("<a> tag appears to have no 'href' attribute")
+			}
+		}
+		for c := n.FirstChild; c != nil; c = c.NextSibling {
+			f(c)
+		}
+	}
+	f(doc)
 
 	return nil
+}
+
+func (s *scraper) GetFullURL(val string) (string, error) {
+	parsedVal, err := url.Parse(val)
+	if err != nil {
+		return val, err
+	}
+
+	if parsedVal.Scheme == "" {
+		parsedVal.Scheme = s.rootURL.Scheme
+	}
+	if parsedVal.Host == "" {
+		parsedVal.Host = s.rootURL.Host
+	}
+
+	return parsedVal.String(), nil
+}
+
+func getHref(t *html.Node) (ok bool, href string) {
+	for _, a := range t.Attr {
+		if a.Key == "href" {
+			ok = true
+			href = a.Val
+			break
+		}
+	}
+	return
 }
 
 func httpStatusIsError(status int) bool {
