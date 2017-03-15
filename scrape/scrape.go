@@ -17,7 +17,7 @@ var (
 	ErrURLInvalid = errors.New("The given URL is invalid")
 
 	// ErrHTTPError is given when the URL provided results in a
-	// HTTP error code.
+	// HTTP error code or could not be reached.
 	ErrHTTPError = errors.New("The given URL gave a http error code")
 )
 

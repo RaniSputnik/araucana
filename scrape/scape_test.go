@@ -56,6 +56,15 @@ func TestTargetSite404ResultsInError(t *testing.T) {
 	}
 }
 
+func TestConnectionTroubleResultsInError(t *testing.T) {
+	// Don't setup file server this time
+
+	_, err := Site("http://localhost:9999")
+	if err != ErrHTTPError {
+		t.Errorf("Expected '%v' but got '%v'", ErrHTTPError, err)
+	}
+}
+
 func setupStaticFileServer(dir string, addr string) *http.Server {
 	srv := &http.Server{
 		Handler: http.FileServer(http.Dir(dir)),
