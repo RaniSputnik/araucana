@@ -3,11 +3,13 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"encoding/xml"
 
 	"github.com/RaniSputnik/araucana/scrape"
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 )
 
@@ -22,7 +24,7 @@ func main() {
 	router.HandleFunc("/sitemap", sitemapHandler).Methods(http.MethodGet)
 
 	srv := &http.Server{
-		Handler:      router,
+		Handler:      wrapGlobalMiddleware(router),
 		Addr:         addr,
 		WriteTimeout: writeTimeout,
 		ReadTimeout:  readTimeout,
@@ -45,6 +47,7 @@ var sitemapHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Reques
 			w.WriteHeader(http.StatusBadRequest)
 			w.Write([]byte("Required parameter 'site' is invalid"))
 		} else {
+			log.Printf("Failed to scrape '%s': %v'", site, err)
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte("500 internal server error"))
 		}
@@ -54,6 +57,7 @@ var sitemapHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Reques
 	resBytes, err := xml.Marshal(sitemap)
 	if err != nil {
 		// TODO helper method for 500's? OR do we panic and recover in middleware
+		log.Printf("Failed to marshall XML: %v'", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("500 internal server error"))
 		return
@@ -63,3 +67,9 @@ var sitemapHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Reques
 	w.WriteHeader(http.StatusOK)
 	w.Write(resBytes)
 })
+
+func wrapGlobalMiddleware(handler http.Handler) http.Handler {
+	r := handlers.RecoveryHandler()(handler)
+	r = handlers.LoggingHandler(os.Stdout, r)
+	return r
+}

@@ -82,6 +82,7 @@ func (s *scraper) Scrape(addr string) error {
 		Loc: addr,
 	}
 
+	// TODO never ever use the default client in production
 	response, err := http.Get(addr)
 	if err != nil {
 		// TODO return defined error
