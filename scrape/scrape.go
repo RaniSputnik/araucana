@@ -3,7 +3,10 @@ package scrape
 import (
 	"encoding/xml"
 	"errors"
+	"net/http"
 	"net/url"
+
+	"golang.org/x/net/html"
 )
 
 const SitemapXMLNamespace = "http://www.sitemaps.org/schemas/sitemap/0.9"
@@ -38,24 +41,60 @@ type SitemapURL struct {
 // the site can not be reached for any reason. Partial
 // sitemaps will not be returned.
 func Site(site string) (*Sitemap, error) {
+	// Validation
 	if site == "" {
 		return nil, ErrURLInvalid
 	}
-	_, err := url.Parse(site)
+	siteURL, err := url.Parse(site)
 	if err != nil {
 		return nil, ErrURLInvalid
 	}
 
+	// Run the scraping of the site
+	s := &scraper{
+		results: map[string]*SitemapURL{},
+	}
+	if err = s.Scrape(siteURL.String()); err != nil {
+		return nil, err
+	}
+
+	// Copy map of scraped sites into URL set
+	i := 0
+	urlset := make([]*SitemapURL, len(s.results))
+	for _, val := range s.results {
+		urlset[i] = val
+		i++
+	}
+
 	// TODO dynamically generate sitemap
 	return &Sitemap{
-		XMLNS: SitemapXMLNamespace,
-		URLSet: []*SitemapURL{
-			&SitemapURL{
-				Loc: "http://tomblomfield.com/about",
-			},
-			&SitemapURL{
-				Loc: "http://tomblomfield.com/random",
-			},
-		},
+		XMLNS:  SitemapXMLNamespace,
+		URLSet: urlset,
 	}, nil
+}
+
+type scraper struct {
+	results map[string]*SitemapURL
+}
+
+func (s *scraper) Scrape(addr string) error {
+	s.results[addr] = &SitemapURL{
+		Loc: addr,
+	}
+
+	response, err := http.Get(addr)
+	if err != nil {
+		// TODO return defined error
+		return err
+	}
+
+	_, err = html.Parse(response.Body)
+	if err != nil {
+		// TODO return defined error
+		return err
+	}
+
+	// TODO read the body and scrape again
+
+	return nil
 }
