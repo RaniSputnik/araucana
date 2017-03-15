@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -41,11 +42,12 @@ var sitemapHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Reques
 
 	sitemap, err := scrape.Site(site)
 	if err != nil {
-		// TODO handle error codes
-		// - report when couldn't reach the input site
 		if err == scrape.ErrURLInvalid {
 			w.WriteHeader(http.StatusBadRequest)
 			w.Write([]byte("Required parameter 'site' is invalid"))
+		} else if err == scrape.ErrHTTPError {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte(fmt.Sprintf("Could not reach '%s'", site)))
 		} else {
 			log.Printf("Failed to scrape '%s': %v'", site, err)
 			w.WriteHeader(http.StatusInternalServerError)
