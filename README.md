@@ -22,3 +22,7 @@ Bonus points for tests and making it as fast as possible!
 * Fully qualified URL's
 * Stick as close as possible to Googles sitemap format
 * Respect robots.txt
+
+### Known Issues
+
+* Sites with an `<a>` tag link to a non-HTML page will result in the url still being added to the list of pages eg. `<a href="index.js">View Source</a>`
