@@ -88,6 +88,7 @@ func (s *scraper) Scrape(addr string) error {
 	s.results[addr] = &SitemapURL{
 		Loc: addr,
 	}
+	log.Printf("Scraping %s", addr)
 
 	// TODO never ever use the default client in production
 	response, err := http.Get(addr)
