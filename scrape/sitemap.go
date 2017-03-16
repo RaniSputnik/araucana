@@ -17,7 +17,7 @@ type Sitemap struct {
 type Page struct {
 	URL    string   `json:"url"`
 	Assets []*Asset `json:"assets"`
-	// TODO crosslink pages
+	Pages  []string `json:"pages"`
 }
 
 // Asset represents a reference to a piece of static content.

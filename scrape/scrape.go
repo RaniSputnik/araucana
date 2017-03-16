@@ -22,7 +22,7 @@ type scrapeResult struct {
 func (s *scraper) Scrape(addr string) error {
 	// TODO provide context to method so timeout can be provided
 	// TODO limit the recursion to a fixed max
-	thisPage := &Page{addr, []*Asset{}}
+	thisPage := &Page{addr, []*Asset{}, []string{}}
 	s.results[addr] = thisPage
 	s.logger.Printf("Scraping %s", addr)
 
@@ -41,7 +41,7 @@ func (s *scraper) Scrape(addr string) error {
 
 		for _, nextURL := range res.NextURLs {
 			if _, done := s.results[nextURL]; !done {
-				nextPage := &Page{nextURL, []*Asset{}}
+				nextPage := &Page{nextURL, []*Asset{}, []string{}}
 				s.results[nextURL] = nextPage
 				inflight++
 				go s.doScrape(nextPage, cResults, cStop)

@@ -52,10 +52,12 @@ func TestLinksAreAlsoScraped(t *testing.T) {
 	expected := &Sitemap{
 		Pages: []*Page{
 			&Page{
-				URL: "http://localhost:3000/index.html",
+				URL:   "http://localhost:3000/index.html",
+				Pages: []string{"http://localhost:3000/contact.html"},
 			},
 			&Page{
-				URL: "http://localhost:3000/contact.html",
+				URL:   "http://localhost:3000/contact.html",
+				Pages: []string{"http://localhost:3000/index.html"},
 			},
 		},
 	}
@@ -95,7 +97,8 @@ func TestHashAndQueryStringAreIgnored(t *testing.T) {
 	expected := &Sitemap{
 		Pages: []*Page{
 			&Page{
-				URL: "http://localhost:3000/index.html",
+				URL:   "http://localhost:3000/index.html",
+				Pages: []string{"http://localhost:3000/contact.html"},
 			},
 			&Page{
 				URL: "http://localhost:3000/contact.html",
@@ -219,9 +222,8 @@ func ensureSitemapsMatch(t *testing.T, got *Sitemap, expected *Sitemap) {
 
 			// Check the number of assets match
 			if len(gotPage.Assets) != len(expectedPage.Assets) {
-				t.Errorf("Expected %d assets(s), got %d assets(s)", len(expectedPage.Assets), len(gotPage.Assets))
+				t.Errorf("Expected %d asset(s) on page '%s', got %d asset(s)", len(expectedPage.Assets), expectedPage.URL, len(gotPage.Assets))
 			}
-
 			// Check that no unexpected assets were found
 			for _, gotAsset := range gotPage.Assets {
 				found := findAssetInList(gotAsset, expectedPage.Assets)
@@ -229,7 +231,6 @@ func ensureSitemapsMatch(t *testing.T, got *Sitemap, expected *Sitemap) {
 					t.Errorf("Got unexpected asset '%v'", gotAsset)
 				}
 			}
-
 			// Check that all the expected assets were found
 			for _, expectedAsset := range expectedPage.Assets {
 				found := findAssetInList(expectedAsset, gotPage.Assets)
@@ -237,8 +238,34 @@ func ensureSitemapsMatch(t *testing.T, got *Sitemap, expected *Sitemap) {
 					t.Errorf("Expected asset '%v' was not found", expectedAsset)
 				}
 			}
+
+			// Check that the number of page links match
+			if len(gotPage.Pages) != len(expectedPage.Pages) {
+				t.Errorf("Expected %d page link(s) on page '%s', got %d page link(s)", len(expectedPage.Pages), expectedPage.URL, len(gotPage.Pages))
+			}
+			// Check that no unexpected page links were found
+			for _, gotPageLink := range gotPage.Pages {
+				if !listContainsString(gotPageLink, expectedPage.Pages) {
+					t.Errorf("Got unexpected page link '%s'", gotPageLink)
+				}
+			}
+			// Check that all the expected page links were found
+			for _, expectedPageLink := range expectedPage.Pages {
+				if !listContainsString(expectedPageLink, gotPage.Pages) {
+					t.Errorf("Expected page link '%s' was not found", expectedPageLink)
+				}
+			}
 		}
 	}
+}
+
+func listContainsString(find string, list []string) bool {
+	for _, str := range list {
+		if str == find {
+			return true
+		}
+	}
+	return false
 }
 
 func findPageInList(findURL string, pages []*Page) *Page {
