@@ -1,6 +1,7 @@
 package scrape
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"net/url"
@@ -18,9 +19,7 @@ type scrapeResult struct {
 	Err      error
 }
 
-func (s *scraper) Scrape(startAddr string) (map[string]*Page, error) {
-	// TODO provide context to method so timeout can be provided
-	// TODO limit the recursion to a fixed max
+func (s *scraper) Scrape(ctx context.Context, startAddr string) (map[string]*Page, error) {
 	results := make(map[string]*Page)
 	inflight := 0
 
@@ -40,17 +39,22 @@ func (s *scraper) Scrape(startAddr string) (map[string]*Page, error) {
 
 	for inflight > 0 {
 		inflight--
-		res := <-cResults
-		if res.Err != nil {
-			return nil, res.Err
-		}
-
-		for _, nextURL := range res.NextURLs {
-			if _, alreadyScraped := results[nextURL]; !alreadyScraped {
-				startPageScrape(nextURL)
-			} else {
-				s.logger.Printf("We've already scraped '%s'", nextURL)
+		select {
+		case res := <-cResults:
+			if res.Err != nil {
+				return nil, res.Err
 			}
+
+			for _, nextURL := range res.NextURLs {
+				if _, alreadyScraped := results[nextURL]; !alreadyScraped {
+					startPageScrape(nextURL)
+				} else {
+					s.logger.Printf("We've already scraped '%s'", nextURL)
+				}
+			}
+
+		case <-ctx.Done():
+			return nil, ctx.Err()
 		}
 	}
 

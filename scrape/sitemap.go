@@ -1,6 +1,7 @@
 package scrape
 
 import (
+	"context"
 	"errors"
 	"log"
 	"net/url"
@@ -60,7 +61,7 @@ var (
 // An error will be thrown if the url is invalid or
 // the site can not be reached for any reason. Partial
 // sitemaps will not be returned.
-func Site(site string) (*Sitemap, error) {
+func Site(ctx context.Context, site string) (*Sitemap, error) {
 	// Validation
 	if site == "" {
 		return nil, ErrURLInvalid
@@ -76,7 +77,7 @@ func Site(site string) (*Sitemap, error) {
 		// TODO allow logger to be specified
 		logger: log.New(os.Stdout, "", log.LstdFlags),
 	}
-	results, err := s.Scrape(siteURL.String())
+	results, err := s.Scrape(ctx, siteURL.String())
 	if err != nil {
 		return nil, err
 	}

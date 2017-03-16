@@ -39,7 +39,7 @@ var sitemapHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Reques
 	q := r.URL.Query()
 	site := q.Get("site")
 
-	sitemap, err := scrape.Site(site)
+	sitemap, err := scrape.Site(r.Context(), site)
 	if err != nil {
 		if err == scrape.ErrURLInvalid {
 			w.WriteHeader(http.StatusBadRequest)
