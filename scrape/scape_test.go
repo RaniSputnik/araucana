@@ -220,17 +220,17 @@ func ensureSitemapsMatch(t *testing.T, got *Sitemap, expected *Sitemap) {
 
 			// Check that no unexpected assets were found
 			for _, gotAsset := range gotPage.Assets {
-				found := findAssetInList(gotAsset.URL, expectedPage.Assets)
+				found := findAssetInList(gotAsset, expectedPage.Assets)
 				if found == nil {
-					t.Errorf("Got unexpected asset '%s'", gotAsset.URL)
+					t.Errorf("Got unexpected asset '%v'", gotAsset)
 				}
 			}
 
 			// Check that all the expected assets were found
 			for _, expectedAsset := range expectedPage.Assets {
-				found := findAssetInList(expectedAsset.URL, gotPage.Assets)
+				found := findAssetInList(expectedAsset, gotPage.Assets)
 				if found == nil {
-					t.Errorf("Expected asset '%s' was not found", expectedAsset.URL)
+					t.Errorf("Expected asset '%v' was not found", expectedAsset)
 				}
 			}
 		}
@@ -246,9 +246,9 @@ func findPageInList(findURL string, pages []*Page) *Page {
 	return nil
 }
 
-func findAssetInList(findURL string, assets []*Asset) *Asset {
+func findAssetInList(find *Asset, assets []*Asset) *Asset {
 	for _, asset := range assets {
-		if asset.URL == findURL {
+		if asset.URL == find.URL && asset.Type == find.Type {
 			return asset
 		}
 	}
