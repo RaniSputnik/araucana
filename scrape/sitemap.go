@@ -78,13 +78,13 @@ func Site(ctx context.Context, site string) (*Sitemap, error) {
 	}
 
 	// Run the scraping of the site
-	s := &scraper{
+	c := &crawler{
 		rootURL: siteURL,
 		// TODO allow logger & client to be specified
 		client: defaultHTTPClient,
 		logger: log.New(os.Stdout, "", log.LstdFlags),
 	}
-	results, err := s.Scrape(ctx, siteURL.String())
+	results, err := c.Crawl(ctx, siteURL.String())
 	if err != nil {
 		return nil, err
 	}

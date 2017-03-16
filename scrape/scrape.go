@@ -9,7 +9,7 @@ import (
 	"golang.org/x/net/html"
 )
 
-type scraper struct {
+type crawler struct {
 	rootURL *url.URL
 	client  *http.Client
 	logger  *log.Logger
@@ -20,7 +20,7 @@ type scrapeResult struct {
 	Err      error
 }
 
-func (s *scraper) Scrape(ctx context.Context, startAddr string) (map[string]*Page, error) {
+func (s *crawler) Crawl(ctx context.Context, startAddr string) (map[string]*Page, error) {
 	results := make(map[string]*Page)
 	inflight := 0
 
@@ -33,7 +33,7 @@ func (s *scraper) Scrape(ctx context.Context, startAddr string) (map[string]*Pag
 		results[addr] = thisPage
 		inflight++
 
-		go s.doScrape(thisPage, cResults, cDone)
+		go s.scrape(thisPage, cResults, cDone)
 	}
 
 	startPageScrape(startAddr)
@@ -62,7 +62,7 @@ func (s *scraper) Scrape(ctx context.Context, startAddr string) (map[string]*Pag
 	return results, nil
 }
 
-func (s *scraper) doScrape(page *Page, cResults chan<- *scrapeResult, done <-chan interface{}) {
+func (s *crawler) scrape(page *Page, cResults chan<- *scrapeResult, done <-chan interface{}) {
 	s.logger.Printf("Scraping %s", page.URL)
 
 	response, err := s.client.Get(page.URL)
@@ -106,7 +106,7 @@ func (s *scraper) doScrape(page *Page, cResults chan<- *scrapeResult, done <-cha
 	}
 }
 
-func (s *scraper) getLinkIfExistsInNode(n *html.Node) string {
+func (s *crawler) getLinkIfExistsInNode(n *html.Node) string {
 	if n.Type != html.ElementNode || n.Data != "a" {
 		// Skip this node, it's not an <a> tag
 		return ""
@@ -136,7 +136,7 @@ func (s *scraper) getLinkIfExistsInNode(n *html.Node) string {
 	return parsedHref.String()
 }
 
-func (s *scraper) getAssetIfExistsInNode(n *html.Node) *Asset {
+func (s *crawler) getAssetIfExistsInNode(n *html.Node) *Asset {
 	if n.Type != html.ElementNode {
 		return nil
 	}
