@@ -67,8 +67,7 @@ func (s *scraper) doScrape(page *Page, cResults chan<- *scrapeResult, done <-cha
 
 	doc, err := html.Parse(response.Body)
 	if err != nil {
-		// TODO return defined error
-		cResults <- &scrapeResult{Err: err}
+		cResults <- &scrapeResult{Err: ErrParseError}
 	}
 
 	var f func(*html.Node)

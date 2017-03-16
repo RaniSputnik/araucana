@@ -47,6 +47,10 @@ var (
 	// ErrHTTPError is given when the URL provided results in a
 	// HTTP error code or could not be reached.
 	ErrHTTPError = errors.New("The given URL gave a http error code")
+
+	// ErrParseError is given when a page gave a HTML response that
+	// could not be parsed.
+	ErrParseError = errors.New("Failed to parse link")
 )
 
 // Site will generate a sitemap for the given URL.
