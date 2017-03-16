@@ -29,8 +29,7 @@ func TestTargetSiteIsSinglePage(t *testing.T) {
 	defer srv.Close()
 
 	expected := &Sitemap{
-		XMLNS: SitemapXMLNamespace,
-		URLSet: []*SitemapURL{
+		Pages: []*SitemapURL{
 			&SitemapURL{
 				Loc: "http://localhost:3000/index.html",
 			},
@@ -50,8 +49,7 @@ func TestLinksAreAlsoScraped(t *testing.T) {
 	defer srv.Close()
 
 	expected := &Sitemap{
-		XMLNS: SitemapXMLNamespace,
-		URLSet: []*SitemapURL{
+		Pages: []*SitemapURL{
 			&SitemapURL{
 				Loc: "http://localhost:3000/index.html",
 			},
@@ -74,8 +72,7 @@ func TestExternalLinksAreNotScraped(t *testing.T) {
 	defer srv.Close()
 
 	expected := &Sitemap{
-		XMLNS: SitemapXMLNamespace,
-		URLSet: []*SitemapURL{
+		Pages: []*SitemapURL{
 			&SitemapURL{
 				Loc: "http://localhost:3000/index.html",
 			},
@@ -95,8 +92,7 @@ func TestHashAndQueryStringAreIgnored(t *testing.T) {
 	defer srv.Close()
 
 	expected := &Sitemap{
-		XMLNS: SitemapXMLNamespace,
-		URLSet: []*SitemapURL{
+		Pages: []*SitemapURL{
 			&SitemapURL{
 				Loc: "http://localhost:3000/index.html",
 			},
@@ -158,16 +154,16 @@ func ensureSitemapsMatch(t *testing.T, got *Sitemap, expected *Sitemap) {
 		}
 	}
 
-	if len(expected.URLSet) != len(got.URLSet) {
-		t.Errorf("Expected %d url(s), got %d url(s)", len(expected.URLSet), len(got.URLSet))
+	if len(expected.Pages) != len(got.Pages) {
+		t.Errorf("Expected %d url(s), got %d url(s)", len(expected.Pages), len(got.Pages))
 	}
 
 	// TODO these comparrissons could be done a lot faster
 	// lets just KISS for now
 
-	for _, url := range got.URLSet {
+	for _, url := range got.Pages {
 		found := false
-		for _, test := range expected.URLSet {
+		for _, test := range expected.Pages {
 			if url.Loc == test.Loc {
 				found = true
 				break
@@ -178,9 +174,9 @@ func ensureSitemapsMatch(t *testing.T, got *Sitemap, expected *Sitemap) {
 		}
 	}
 
-	for _, test := range expected.URLSet {
+	for _, test := range expected.Pages {
 		found := false
-		for _, url := range got.URLSet {
+		for _, url := range got.Pages {
 			if url.Loc == test.Loc {
 				found = true
 				break

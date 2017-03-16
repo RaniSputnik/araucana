@@ -1,13 +1,12 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"time"
-
-	"encoding/xml"
 
 	"github.com/RaniSputnik/araucana/scrape"
 	"github.com/gorilla/handlers"
@@ -56,16 +55,16 @@ var sitemapHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	resBytes, err := xml.Marshal(sitemap)
+	resBytes, err := json.Marshal(sitemap)
 	if err != nil {
 		// TODO helper method for 500's? OR do we panic and recover in middleware
-		log.Printf("Failed to marshall XML: %v'", err)
+		log.Printf("Failed to marshall JSON: %v'", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("500 internal server error"))
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/xml")
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(resBytes)
 })

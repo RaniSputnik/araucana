@@ -1,20 +1,15 @@
 package scrape
 
 import (
-	"encoding/xml"
 	"errors"
 	"log"
 	"net/url"
 	"os"
 )
 
-const SitemapXMLNamespace = "http://www.sitemaps.org/schemas/sitemap/0.9"
-
 // Sitemap represents a heirachy of pages within a webiste
 type Sitemap struct {
-	XMLName xml.Name      `xml:"urlset"`
-	XMLNS   string        `xml:"xmlns,attr"`
-	URLSet  []*SitemapURL `xml:"url"`
+	Pages []*SitemapURL `json:"pages"`
 }
 
 // SitemapURL represents a location within a sitemap.
@@ -73,7 +68,6 @@ func Site(site string) (*Sitemap, error) {
 
 	// Return the sitemap response
 	return &Sitemap{
-		XMLNS:  SitemapXMLNamespace,
-		URLSet: urlset,
+		Pages: urlset,
 	}, nil
 }
