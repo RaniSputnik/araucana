@@ -26,3 +26,4 @@ Bonus points for tests and making it as fast as possible!
 ### Known Issues
 
 * Sites with an `<a>` tag link to a non-HTML page will result in the url still being added to the list of pages eg. `<a href="index.js">View Source</a>`
+* Links that have a trailing slash are counted separate from those without eg. `//localhost:3000/blog` vs `//localhost:3000/blog/`
