@@ -11,6 +11,7 @@ import (
 
 type scraper struct {
 	rootURL *url.URL
+	client  *http.Client
 	logger  *log.Logger
 }
 
@@ -64,19 +65,22 @@ func (s *scraper) Scrape(ctx context.Context, startAddr string) (map[string]*Pag
 func (s *scraper) doScrape(page *Page, cResults chan<- *scrapeResult, done <-chan interface{}) {
 	s.logger.Printf("Scraping %s", page.URL)
 
-	// TODO never ever use the default client in production
-	response, err := http.Get(page.URL)
+	response, err := s.client.Get(page.URL)
 	if err != nil {
 		cResults <- &scrapeResult{Err: ErrHTTPError}
+		return
 	}
+	defer response.Body.Close()
 
 	if httpStatusIsError(response.StatusCode) {
 		cResults <- &scrapeResult{Err: ErrHTTPError}
+		return
 	}
 
 	doc, err := html.Parse(response.Body)
 	if err != nil {
 		cResults <- &scrapeResult{Err: ErrParseError}
+		return
 	}
 
 	var parseNextToken func(*html.Node)
