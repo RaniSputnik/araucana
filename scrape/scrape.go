@@ -72,11 +72,10 @@ func (s *scraper) doScrape(page *Page, cResults chan<- *scrapeResult, stop <-cha
 		cResults <- &scrapeResult{Err: err}
 	}
 
-	nextURLBatch := []string{}
 	var f func(*html.Node)
 	f = func(n *html.Node) {
 		if nextURL := s.getLinkIfExistsInNode(n); nextURL != "" {
-			nextURLBatch = append(nextURLBatch, nextURL)
+			page.Pages = appendPageIfNotPresent(page.Pages, nextURL)
 		} else {
 			s.tryAddAsset(n, page)
 		}
@@ -91,7 +90,7 @@ func (s *scraper) doScrape(page *Page, cResults chan<- *scrapeResult, stop <-cha
 	// links to a single resource
 
 	select {
-	case cResults <- &scrapeResult{NextURLs: nextURLBatch}:
+	case cResults <- &scrapeResult{NextURLs: page.Pages}:
 	case <-stop:
 	}
 }
@@ -182,4 +181,13 @@ func attr(t *html.Node, name string) (bool, string) {
 
 func httpStatusIsError(status int) bool {
 	return status == 0 || status >= 400
+}
+
+func appendPageIfNotPresent(pages []string, pageURL string) []string {
+	for _, existingPageURL := range pages {
+		if existingPageURL == pageURL {
+			return pages
+		}
+	}
+	return append(pages, pageURL)
 }
