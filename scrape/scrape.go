@@ -10,15 +10,15 @@ import (
 
 type scraper struct {
 	rootURL *url.URL
-	results map[string]*SitemapURL
+	results map[string]*Page
 	logger  *log.Logger
 }
 
 func (s *scraper) Scrape(addr string) error {
 	// TODO provide context to method so timeout can be provided
 	// TODO limit the recursion to a fixed max
-	s.results[addr] = &SitemapURL{
-		Loc: addr,
+	s.results[addr] = &Page{
+		URL: addr,
 	}
 	s.logger.Printf("Scraping %s", addr)
 

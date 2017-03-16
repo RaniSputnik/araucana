@@ -29,9 +29,9 @@ func TestTargetSiteIsSinglePage(t *testing.T) {
 	defer srv.Close()
 
 	expected := &Sitemap{
-		Pages: []*SitemapURL{
-			&SitemapURL{
-				Loc: "http://localhost:3000/index.html",
+		Pages: []*Page{
+			&Page{
+				URL: "http://localhost:3000/index.html",
 			},
 		},
 	}
@@ -49,12 +49,12 @@ func TestLinksAreAlsoScraped(t *testing.T) {
 	defer srv.Close()
 
 	expected := &Sitemap{
-		Pages: []*SitemapURL{
-			&SitemapURL{
-				Loc: "http://localhost:3000/index.html",
+		Pages: []*Page{
+			&Page{
+				URL: "http://localhost:3000/index.html",
 			},
-			&SitemapURL{
-				Loc: "http://localhost:3000/contact.html",
+			&Page{
+				URL: "http://localhost:3000/contact.html",
 			},
 		},
 	}
@@ -72,9 +72,9 @@ func TestExternalLinksAreNotScraped(t *testing.T) {
 	defer srv.Close()
 
 	expected := &Sitemap{
-		Pages: []*SitemapURL{
-			&SitemapURL{
-				Loc: "http://localhost:3000/index.html",
+		Pages: []*Page{
+			&Page{
+				URL: "http://localhost:3000/index.html",
 			},
 		},
 	}
@@ -92,12 +92,12 @@ func TestHashAndQueryStringAreIgnored(t *testing.T) {
 	defer srv.Close()
 
 	expected := &Sitemap{
-		Pages: []*SitemapURL{
-			&SitemapURL{
-				Loc: "http://localhost:3000/index.html",
+		Pages: []*Page{
+			&Page{
+				URL: "http://localhost:3000/index.html",
 			},
-			&SitemapURL{
-				Loc: "http://localhost:3000/contact.html",
+			&Page{
+				URL: "http://localhost:3000/contact.html",
 			},
 		},
 	}
@@ -164,26 +164,26 @@ func ensureSitemapsMatch(t *testing.T, got *Sitemap, expected *Sitemap) {
 	for _, url := range got.Pages {
 		found := false
 		for _, test := range expected.Pages {
-			if url.Loc == test.Loc {
+			if url.URL == test.URL {
 				found = true
 				break
 			}
 		}
 		if !found {
-			t.Errorf("Got unexpected url '%s'", url.Loc)
+			t.Errorf("Got unexpected url '%s'", url.URL)
 		}
 	}
 
 	for _, test := range expected.Pages {
 		found := false
 		for _, url := range got.Pages {
-			if url.Loc == test.Loc {
+			if url.URL == test.URL {
 				found = true
 				break
 			}
 		}
 		if !found {
-			t.Errorf("Expected url '%s' was not found", test.Loc)
+			t.Errorf("Expected url '%s' was not found", test.URL)
 		}
 	}
 }

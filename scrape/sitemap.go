@@ -9,13 +9,13 @@ import (
 
 // Sitemap represents a heirachy of pages within a webiste
 type Sitemap struct {
-	Pages []*SitemapURL `json:"pages"`
+	Pages []*Page `json:"pages"`
 }
 
-// SitemapURL represents a location within a sitemap.
+// Page represents a location within a sitemap.
 // Should be indicative of a page within the website.
-type SitemapURL struct {
-	Loc string `xml:"loc"`
+type Page struct {
+	URL string `json:"url"`
 	// TODO sitemap image
 	// TODO sitemap js
 	// TODO sitemap css
@@ -51,7 +51,7 @@ func Site(site string) (*Sitemap, error) {
 	// Run the scraping of the site
 	s := &scraper{
 		rootURL: siteURL,
-		results: map[string]*SitemapURL{},
+		results: map[string]*Page{},
 		logger:  log.New(os.Stdout, "", log.LstdFlags),
 	}
 	if err = s.Scrape(siteURL.String()); err != nil {
@@ -60,7 +60,7 @@ func Site(site string) (*Sitemap, error) {
 
 	// Copy map of scraped sites into URL set
 	i := 0
-	urlset := make([]*SitemapURL, len(s.results))
+	urlset := make([]*Page, len(s.results))
 	for _, val := range s.results {
 		urlset[i] = val
 		i++
