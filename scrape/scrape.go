@@ -88,14 +88,7 @@ func (s *scraper) GetFullURLWithoutHashAndQuery(val string) (*url.URL, error) {
 		return nil, err
 	}
 
-	// TODO use https://golang.org/pkg/net/url/#URL.ResolveReference
-
-	if parsedVal.Scheme == "" {
-		parsedVal.Scheme = s.rootURL.Scheme
-	}
-	if parsedVal.Host == "" {
-		parsedVal.Host = s.rootURL.Host
-	}
+	parsedVal = s.rootURL.ResolveReference(parsedVal)
 	parsedVal.RawQuery = ""
 	parsedVal.Fragment = ""
 
