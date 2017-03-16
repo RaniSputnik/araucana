@@ -14,6 +14,11 @@ type scraper struct {
 	logger  *log.Logger
 }
 
+type scrapeResult struct {
+	NextURLs []string
+	Err      error
+}
+
 func (s *scraper) Scrape(addr string) error {
 	// TODO provide context to method so timeout can be provided
 	// TODO limit the recursion to a fixed max
@@ -21,50 +26,50 @@ func (s *scraper) Scrape(addr string) error {
 	s.results[addr] = thisPage
 	s.logger.Printf("Scraping %s", addr)
 
-	urlsChan := make(chan []string)
-	errorChan := make(chan error)
-	stop := make(chan interface{})
-	defer close(stop)
-	go s.doScrape(thisPage, urlsChan, errorChan, stop)
+	cResults := make(chan *scrapeResult)
+	cStop := make(chan interface{})
+	defer close(cStop)
+	go s.doScrape(thisPage, cResults, cStop)
 
 	inflight := 1
 	for inflight > 0 {
 		inflight--
-		select {
-		case nextURLs := <-urlsChan:
-			for _, nextURL := range nextURLs {
-				if _, done := s.results[nextURL]; !done {
-					nextPage := &Page{nextURL, []*Asset{}}
-					s.results[nextURL] = nextPage
-					inflight++
-					go s.doScrape(nextPage, urlsChan, errorChan, stop)
-				} else {
-					s.logger.Printf("We've already scraped '%s'", nextURL)
-				}
-			}
-		case err := <-errorChan:
-			return err
+		res := <-cResults
+		if res.Err != nil {
+			return res.Err
 		}
+
+		for _, nextURL := range res.NextURLs {
+			if _, done := s.results[nextURL]; !done {
+				nextPage := &Page{nextURL, []*Asset{}}
+				s.results[nextURL] = nextPage
+				inflight++
+				go s.doScrape(nextPage, cResults, cStop)
+			} else {
+				s.logger.Printf("We've already scraped '%s'", nextURL)
+			}
+		}
+
 	}
 
 	return nil
 }
 
-func (s *scraper) doScrape(page *Page, urlsChan chan<- []string, errorChan chan<- error, stop <-chan interface{}) {
+func (s *scraper) doScrape(page *Page, cResults chan<- *scrapeResult, stop <-chan interface{}) {
 	// TODO never ever use the default client in production
 	response, err := http.Get(page.URL)
 	if err != nil {
-		errorChan <- ErrHTTPError
+		cResults <- &scrapeResult{Err: ErrHTTPError}
 	}
 
 	if httpStatusIsError(response.StatusCode) {
-		errorChan <- ErrHTTPError
+		cResults <- &scrapeResult{Err: ErrHTTPError}
 	}
 
 	doc, err := html.Parse(response.Body)
 	if err != nil {
 		// TODO return defined error
-		errorChan <- err
+		cResults <- &scrapeResult{Err: err}
 	}
 
 	nextURLBatch := []string{}
@@ -86,7 +91,7 @@ func (s *scraper) doScrape(page *Page, urlsChan chan<- []string, errorChan chan<
 	// links to a single resource
 
 	select {
-	case urlsChan <- nextURLBatch:
+	case cResults <- &scrapeResult{NextURLs: nextURLBatch}:
 	case <-stop:
 	}
 }
