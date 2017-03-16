@@ -59,7 +59,7 @@ func (s *scraper) tryFollowLinkIfExistsInNode(n *html.Node) {
 		// Skip this node, it's not an <a> tag
 		return
 	}
-	ok, href := getHref(n)
+	ok, href := attr(n, "href")
 	if !ok {
 		s.logger.Printf("<a> tag appears to have no 'href' attribute")
 		return
@@ -130,27 +130,10 @@ func (s *scraper) GetFullURL(val string) (*url.URL, error) {
 }
 
 func (s *scraper) GetFullURLWithoutHashAndQuery(val string) (*url.URL, error) {
-	parsedVal, err := url.Parse(val)
-	if err != nil {
-		return nil, err
-	}
-
-	parsedVal = s.rootURL.ResolveReference(parsedVal)
+	parsedVal, err := s.GetFullURL(val)
 	parsedVal.RawQuery = ""
 	parsedVal.Fragment = ""
-
-	return parsedVal, nil
-}
-
-func getHref(t *html.Node) (ok bool, href string) {
-	for _, a := range t.Attr {
-		if a.Key == "href" {
-			ok = true
-			href = a.Val
-			break
-		}
-	}
-	return
+	return parsedVal, err
 }
 
 func attr(t *html.Node, name string) (bool, string) {
