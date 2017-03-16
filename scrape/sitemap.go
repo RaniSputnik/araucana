@@ -4,8 +4,10 @@ import (
 	"context"
 	"errors"
 	"log"
+	"net/http"
 	"net/url"
 	"os"
+	"time"
 )
 
 // Sitemap represents a heirachy of pages within a webiste
@@ -54,6 +56,10 @@ var (
 	ErrParseError = errors.New("Failed to parse link")
 )
 
+var defaultHTTPClient = &http.Client{
+	Timeout: time.Second * 30,
+}
+
 // Site will generate a sitemap for the given URL.
 // The sitemap will be constrained to a given domain,
 // external links will not be followed.
@@ -74,7 +80,8 @@ func Site(ctx context.Context, site string) (*Sitemap, error) {
 	// Run the scraping of the site
 	s := &scraper{
 		rootURL: siteURL,
-		// TODO allow logger to be specified
+		// TODO allow logger & client to be specified
+		client: defaultHTTPClient,
 		logger: log.New(os.Stdout, "", log.LstdFlags),
 	}
 	results, err := s.Scrape(ctx, siteURL.String())
