@@ -26,8 +26,8 @@ type Page struct {
 // the scraper. They do not represent the content that was served
 // but the reference from the page.
 type Asset struct {
-	Type string
-	URL  string
+	Type string `json:"type"`
+	URL  string `json:"url"`
 }
 
 const (
