@@ -113,7 +113,7 @@ func (s *scraper) tryAddAsset(n *html.Node, page *Page) {
 	case "script":
 		if ok, src := attr(n, "src"); ok {
 			if fullURL, err := s.GetFullURL(src); err == nil {
-				page.Assets = append(page.Assets, &Asset{Type: AssetTypeImage, URL: fullURL.String()})
+				page.Assets = append(page.Assets, &Asset{Type: AssetTypeScript, URL: fullURL.String()})
 			}
 		}
 	}
