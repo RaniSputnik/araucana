@@ -23,7 +23,9 @@ func (s *scraper) Scrape(addr string) error {
 
 	urlsChan := make(chan []string)
 	errorChan := make(chan error)
-	go s.doScrape(thisPage, urlsChan, errorChan)
+	stop := make(chan interface{})
+	defer close(stop)
+	go s.doScrape(thisPage, urlsChan, errorChan, stop)
 
 	inflight := 1
 	for inflight > 0 {
@@ -35,13 +37,12 @@ func (s *scraper) Scrape(addr string) error {
 					nextPage := &Page{nextURL, []*Asset{}}
 					s.results[nextURL] = nextPage
 					inflight++
-					go s.doScrape(nextPage, urlsChan, errorChan)
+					go s.doScrape(nextPage, urlsChan, errorChan, stop)
 				} else {
 					s.logger.Printf("We've already scraped '%s'", nextURL)
 				}
 			}
 		case err := <-errorChan:
-			// TODO drain the doScrape goroutines waiting to publish to urlsChan
 			return err
 		}
 	}
@@ -49,7 +50,7 @@ func (s *scraper) Scrape(addr string) error {
 	return nil
 }
 
-func (s *scraper) doScrape(page *Page, urlsChan chan<- []string, errorChan chan<- error) {
+func (s *scraper) doScrape(page *Page, urlsChan chan<- []string, errorChan chan<- error, stop <-chan interface{}) {
 	// TODO never ever use the default client in production
 	response, err := http.Get(page.URL)
 	if err != nil {
@@ -84,7 +85,10 @@ func (s *scraper) doScrape(page *Page, urlsChan chan<- []string, errorChan chan<
 	// That could be a neat feature - find when you have duplicate
 	// links to a single resource
 
-	urlsChan <- nextURLBatch
+	select {
+	case urlsChan <- nextURLBatch:
+	case <-stop:
+	}
 }
 
 func (s *scraper) getLinkIfExistsInNode(n *html.Node) string {
