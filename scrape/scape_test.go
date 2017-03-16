@@ -1,6 +1,7 @@
 package scrape_test
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
 
@@ -109,6 +110,41 @@ func TestHashAndQueryStringAreIgnored(t *testing.T) {
 	ensureSitemapsMatch(t, sitemap, expected)
 }
 
+func TestAssetReferencesAreIncluded(t *testing.T) {
+	addr := ":3000"
+	srv := setupStaticFileServer("test/assets", addr)
+	defer srv.Close()
+
+	site := "http://localhost:3000"
+	expected := &Sitemap{
+		Pages: []*Page{
+			&Page{
+				URL: fmt.Sprintf("%s/index.html", site),
+				Assets: []*Asset{
+					&Asset{
+						Type: AssetTypeImage,
+						URL:  fmt.Sprintf("%s/hello-world.jpg", site),
+					},
+					&Asset{
+						Type: AssetTypeStylesheet,
+						URL:  fmt.Sprintf("%s/index.css", site),
+					},
+					&Asset{
+						Type: AssetTypeScript,
+						URL:  fmt.Sprintf("%s/index.js", site),
+					},
+				},
+			},
+		},
+	}
+	sitemap, err := Site(fmt.Sprintf("%s/index.html", site))
+
+	if err != nil {
+		t.Errorf("Expected no error but got '%v'", err)
+	}
+	ensureSitemapsMatch(t, sitemap, expected)
+}
+
 func TestTargetSite404ResultsInError(t *testing.T) {
 	addr := ":3000"
 	srv := setupStaticFileServer("test/basic", addr)
@@ -154,36 +190,67 @@ func ensureSitemapsMatch(t *testing.T, got *Sitemap, expected *Sitemap) {
 		}
 	}
 
-	if len(expected.Pages) != len(got.Pages) {
-		t.Errorf("Expected %d url(s), got %d url(s)", len(expected.Pages), len(got.Pages))
-	}
-
 	// TODO these comparrissons could be done a lot faster
 	// lets just KISS for now
 
+	// Check the number of pages match
+	if len(expected.Pages) != len(got.Pages) {
+		t.Errorf("Expected %d pages(s), got %d pages(s)", len(expected.Pages), len(got.Pages))
+	}
+
+	// Check that no unexpected pages were found
 	for _, url := range got.Pages {
-		found := false
-		for _, test := range expected.Pages {
-			if url.URL == test.URL {
-				found = true
-				break
-			}
-		}
-		if !found {
-			t.Errorf("Got unexpected url '%s'", url.URL)
+		foundPage := findPageInList(url.URL, expected.Pages)
+		if foundPage == nil {
+			t.Errorf("Got unexpected page '%s'", url.URL)
 		}
 	}
 
-	for _, test := range expected.Pages {
-		found := false
-		for _, url := range got.Pages {
-			if url.URL == test.URL {
-				found = true
-				break
+	// Ensure that the expected pages were all found in the results
+	for _, expectedPage := range expected.Pages {
+		gotPage := findPageInList(expectedPage.URL, got.Pages)
+		if gotPage == nil {
+			t.Errorf("Expected page '%s' was not found", expectedPage.URL)
+		} else {
+
+			// Check the number of assets match
+			if len(gotPage.Assets) != len(expectedPage.Assets) {
+				t.Errorf("Expected %d assets(s), got %d assets(s)", len(expectedPage.Assets), len(gotPage.Assets))
+			}
+
+			// Check that no unexpected assets were found
+			for _, gotAsset := range gotPage.Assets {
+				found := findAssetInList(gotAsset.URL, expectedPage.Assets)
+				if found == nil {
+					t.Errorf("Got unexpected asset '%s'", gotAsset.URL)
+				}
+			}
+
+			// Check that all the expected assets were found
+			for _, expectedAsset := range expectedPage.Assets {
+				found := findAssetInList(expectedAsset.URL, gotPage.Assets)
+				if found == nil {
+					t.Errorf("Expected asset '%s' was not found", expectedAsset.URL)
+				}
 			}
 		}
-		if !found {
-			t.Errorf("Expected url '%s' was not found", test.URL)
+	}
+}
+
+func findPageInList(findURL string, pages []*Page) *Page {
+	for _, page := range pages {
+		if page.URL == findURL {
+			return page
 		}
 	}
+	return nil
+}
+
+func findAssetInList(findURL string, assets []*Asset) *Asset {
+	for _, asset := range assets {
+		if asset.URL == findURL {
+			return asset
+		}
+	}
+	return nil
 }

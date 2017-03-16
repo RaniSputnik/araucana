@@ -15,11 +15,29 @@ type Sitemap struct {
 // Page represents a location within a sitemap.
 // Should be indicative of a page within the website.
 type Page struct {
-	URL string `json:"url"`
-	// TODO sitemap image
-	// TODO sitemap js
-	// TODO sitemap css
+	URL    string   `json:"url"`
+	Assets []*Asset `json:"assets"`
+	// TODO crosslink pages
 }
+
+// Asset represents a reference to a piece of static content.
+// Assets include stylesheets, images and scripts.
+// Assets can be external because they will not be followed by
+// the scraper. They do not represent the content that was served
+// but the reference from the page.
+type Asset struct {
+	Type string
+	URL  string
+}
+
+const (
+	// AssetTypeStylesheet is used for assets that reference a stylesheet
+	AssetTypeStylesheet = "stylesheet"
+	// AssetTypeImage is used for assets that reference an image
+	AssetTypeImage = "image"
+	// AssetTypeScript is used for assets that reference javascript
+	AssetTypeScript = "script"
+)
 
 var (
 	// ErrURLInvalid is given when the URL provided to the 'Site'
