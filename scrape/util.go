@@ -1,6 +1,10 @@
 package scrape
 
-import "golang.org/x/net/html"
+import (
+	"net/url"
+
+	"golang.org/x/net/html"
+)
 
 func attr(t *html.Node, name string) (bool, string) {
 	for _, a := range t.Attr {
@@ -22,4 +26,14 @@ func appendPageIfNotPresent(pages []string, pageURL string) []string {
 		}
 	}
 	return append(pages, pageURL)
+}
+
+func resolveURL(val string, relativeTo *url.URL) (*url.URL, error) {
+	parsedVal, err := url.Parse(val)
+	if err != nil {
+		return nil, err
+	}
+
+	parsedVal = relativeTo.ResolveReference(parsedVal)
+	return parsedVal, nil
 }

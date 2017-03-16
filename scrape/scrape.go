@@ -110,7 +110,7 @@ func (s *scraper) getLinkIfExistsInNode(n *html.Node) string {
 		return ""
 	}
 
-	parsedHref, err := s.GetFullURLWithoutHashAndQuery(href)
+	parsedHref, err := resolveURL(href, s.rootURL)
 	if err != nil {
 		s.logger.Printf("<a> tag has a href attribute (%s) we can't parse: '%v'", href, err)
 		return ""
@@ -120,6 +120,10 @@ func (s *scraper) getLinkIfExistsInNode(n *html.Node) string {
 		s.logger.Printf("External link will not be followed '%s'", href)
 		return ""
 	}
+
+	// Ignore query & fragment
+	parsedHref.RawQuery = ""
+	parsedHref.Fragment = ""
 
 	return parsedHref.String()
 }
@@ -142,26 +146,9 @@ func (s *scraper) getAssetIfExistsInNode(n *html.Node) *Asset {
 	}
 
 	if ok, src := attr(n, attrName); ok {
-		if fullURL, err := s.GetFullURL(src); err == nil {
+		if fullURL, err := resolveURL(src, s.rootURL); err == nil {
 			return &Asset{Type: assetType, URL: fullURL.String()}
 		}
 	}
 	return nil
-}
-
-func (s *scraper) GetFullURL(val string) (*url.URL, error) {
-	parsedVal, err := url.Parse(val)
-	if err != nil {
-		return nil, err
-	}
-
-	parsedVal = s.rootURL.ResolveReference(parsedVal)
-	return parsedVal, nil
-}
-
-func (s *scraper) GetFullURLWithoutHashAndQuery(val string) (*url.URL, error) {
-	parsedVal, err := s.GetFullURL(val)
-	parsedVal.RawQuery = ""
-	parsedVal.Fragment = ""
-	return parsedVal, err
 }
