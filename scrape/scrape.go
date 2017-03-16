@@ -61,7 +61,7 @@ func (s *scraper) followLinkIfExistsInNode(n *html.Node) {
 		return
 	}
 
-	parsedHref, err := s.GetFullURL(href)
+	parsedHref, err := s.GetFullURLWithoutHashAndQuery(href)
 	if err != nil {
 		s.logger.Printf("<a> tag has a href attribute (%s) we can't parse: '%v'", href, err)
 		return
@@ -82,11 +82,13 @@ func (s *scraper) followLinkIfExistsInNode(n *html.Node) {
 	s.Scrape(href)
 }
 
-func (s *scraper) GetFullURL(val string) (*url.URL, error) {
+func (s *scraper) GetFullURLWithoutHashAndQuery(val string) (*url.URL, error) {
 	parsedVal, err := url.Parse(val)
 	if err != nil {
 		return nil, err
 	}
+
+	// TODO use https://golang.org/pkg/net/url/#URL.ResolveReference
 
 	if parsedVal.Scheme == "" {
 		parsedVal.Scheme = s.rootURL.Scheme
@@ -94,6 +96,8 @@ func (s *scraper) GetFullURL(val string) (*url.URL, error) {
 	if parsedVal.Host == "" {
 		parsedVal.Host = s.rootURL.Host
 	}
+	parsedVal.RawQuery = ""
+	parsedVal.Fragment = ""
 
 	return parsedVal, nil
 }
