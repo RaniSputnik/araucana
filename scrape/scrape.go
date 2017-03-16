@@ -49,13 +49,12 @@ func (s *scraper) Scrape(addr string) error {
 				s.logger.Printf("We've already scraped '%s'", nextURL)
 			}
 		}
-
 	}
 
 	return nil
 }
 
-func (s *scraper) doScrape(page *Page, cResults chan<- *scrapeResult, stop <-chan interface{}) {
+func (s *scraper) doScrape(page *Page, cResults chan<- *scrapeResult, done <-chan interface{}) {
 	// TODO never ever use the default client in production
 	response, err := http.Get(page.URL)
 	if err != nil {
@@ -76,8 +75,8 @@ func (s *scraper) doScrape(page *Page, cResults chan<- *scrapeResult, stop <-cha
 	f = func(n *html.Node) {
 		if nextURL := s.getLinkIfExistsInNode(n); nextURL != "" {
 			page.Pages = appendPageIfNotPresent(page.Pages, nextURL)
-		} else {
-			s.tryAddAsset(n, page)
+		} else if asset := s.getAssetIfExistsInNode(n); asset != nil {
+			page.Assets = append(page.Assets, asset)
 		}
 		for c := n.FirstChild; c != nil; c = c.NextSibling {
 			f(c)
@@ -91,7 +90,7 @@ func (s *scraper) doScrape(page *Page, cResults chan<- *scrapeResult, stop <-cha
 
 	select {
 	case cResults <- &scrapeResult{NextURLs: page.Pages}:
-	case <-stop:
+	case <-done:
 	}
 }
 
@@ -100,6 +99,7 @@ func (s *scraper) getLinkIfExistsInNode(n *html.Node) string {
 		// Skip this node, it's not an <a> tag
 		return ""
 	}
+
 	ok, href := attr(n, "href")
 	if !ok {
 		s.logger.Printf("<a> tag appears to have no 'href' attribute")
@@ -120,37 +120,29 @@ func (s *scraper) getLinkIfExistsInNode(n *html.Node) string {
 	return parsedHref.String()
 }
 
-// tryAddAsset will check if the node is an asset reference
-// (link|img|script). If the node does represent an asset then
-// the asset will be created and added to the specified page
-func (s *scraper) tryAddAsset(n *html.Node, page *Page) {
+func (s *scraper) getAssetIfExistsInNode(n *html.Node) *Asset {
 	if n.Type != html.ElementNode {
-		return
+		return nil
 	}
 
+	var attrName, assetType string
 	switch n.Data {
 	case "link":
-		if ok, src := attr(n, "href"); ok {
-			// TODO check rel=stylesheet || rel="" && ext=css
-			if fullURL, err := s.GetFullURL(src); err == nil {
-				page.Assets = append(page.Assets, &Asset{Type: AssetTypeLink, URL: fullURL.String()})
-			}
-		}
-
+		attrName, assetType = "href", AssetTypeLink
 	case "img":
-		if ok, src := attr(n, "src"); ok {
-			if fullURL, err := s.GetFullURL(src); err == nil {
-				page.Assets = append(page.Assets, &Asset{Type: AssetTypeImage, URL: fullURL.String()})
-			}
-		}
-
+		attrName, assetType = "src", AssetTypeImage
 	case "script":
-		if ok, src := attr(n, "src"); ok {
-			if fullURL, err := s.GetFullURL(src); err == nil {
-				page.Assets = append(page.Assets, &Asset{Type: AssetTypeScript, URL: fullURL.String()})
-			}
+		attrName, assetType = "src", AssetTypeScript
+	default:
+		return nil
+	}
+
+	if ok, src := attr(n, attrName); ok {
+		if fullURL, err := s.GetFullURL(src); err == nil {
+			return &Asset{Type: assetType, URL: fullURL.String()}
 		}
 	}
+	return nil
 }
 
 func (s *scraper) GetFullURL(val string) (*url.URL, error) {
