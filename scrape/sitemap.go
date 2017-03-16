@@ -73,23 +73,24 @@ func Site(site string) (*Sitemap, error) {
 	// Run the scraping of the site
 	s := &scraper{
 		rootURL: siteURL,
-		results: map[string]*Page{},
-		logger:  log.New(os.Stdout, "", log.LstdFlags),
+		// TODO allow logger to be specified
+		logger: log.New(os.Stdout, "", log.LstdFlags),
 	}
-	if err = s.Scrape(siteURL.String()); err != nil {
+	results, err := s.Scrape(siteURL.String())
+	if err != nil {
 		return nil, err
 	}
 
 	// Copy map of scraped sites into URL set
 	i := 0
-	urlset := make([]*Page, len(s.results))
-	for _, val := range s.results {
-		urlset[i] = val
+	pages := make([]*Page, len(results))
+	for _, val := range results {
+		pages[i] = val
 		i++
 	}
 
 	// Return the sitemap response
 	return &Sitemap{
-		Pages: urlset,
+		Pages: pages,
 	}, nil
 }
