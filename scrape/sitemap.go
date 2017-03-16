@@ -31,11 +31,11 @@ type Asset struct {
 }
 
 const (
-	// AssetTypeStylesheet is used for assets that reference a stylesheet
-	AssetTypeStylesheet = "stylesheet"
-	// AssetTypeImage is used for assets that reference an image
+	// AssetTypeLink is used for <link> assets
+	AssetTypeLink = "link"
+	// AssetTypeImage is used for <image> assets
 	AssetTypeImage = "image"
-	// AssetTypeScript is used for assets that reference javascript
+	// AssetTypeScript is used for <script> assets
 	AssetTypeScript = "script"
 )
 

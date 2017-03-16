@@ -126,8 +126,12 @@ func TestAssetReferencesAreIncluded(t *testing.T) {
 						URL:  fmt.Sprintf("%s/hello-world.jpg", site),
 					},
 					&Asset{
-						Type: AssetTypeStylesheet,
+						Type: AssetTypeLink,
 						URL:  fmt.Sprintf("%s/index.css", site),
+					},
+					&Asset{
+						Type: AssetTypeLink,
+						URL:  fmt.Sprintf("%s/favicon.ico", site),
 					},
 					&Asset{
 						Type: AssetTypeScript,

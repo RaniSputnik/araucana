@@ -99,7 +99,7 @@ func (s *scraper) tryAddAsset(n *html.Node, page *Page) {
 		if ok, src := attr(n, "href"); ok {
 			// TODO check rel=stylesheet || rel="" && ext=css
 			if fullURL, err := s.GetFullURL(src); err == nil {
-				page.Assets = append(page.Assets, &Asset{Type: AssetTypeStylesheet, URL: fullURL.String()})
+				page.Assets = append(page.Assets, &Asset{Type: AssetTypeLink, URL: fullURL.String()})
 			}
 		}
 
