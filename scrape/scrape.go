@@ -17,9 +17,8 @@ type scraper struct {
 func (s *scraper) Scrape(addr string) error {
 	// TODO provide context to method so timeout can be provided
 	// TODO limit the recursion to a fixed max
-	s.results[addr] = &Page{
-		URL: addr,
-	}
+	thisPage := &Page{addr, []*Asset{}}
+	s.results[addr] = thisPage
 	s.logger.Printf("Scraping %s", addr)
 
 	// TODO never ever use the default client in production
@@ -40,17 +39,22 @@ func (s *scraper) Scrape(addr string) error {
 
 	var f func(*html.Node)
 	f = func(n *html.Node) {
-		s.followLinkIfExistsInNode(n)
+		s.tryFollowLinkIfExistsInNode(n)
+		s.tryAddAsset(n, thisPage)
 		for c := n.FirstChild; c != nil; c = c.NextSibling {
 			f(c)
 		}
 	}
 	f(doc)
 
+	// TODO do we need to remove duplicate assets from a page?
+	// That could be a neat feature - find when you have duplicate
+	// links to a single resource
+
 	return nil
 }
 
-func (s *scraper) followLinkIfExistsInNode(n *html.Node) {
+func (s *scraper) tryFollowLinkIfExistsInNode(n *html.Node) {
 	if n.Type != html.ElementNode || n.Data != "a" {
 		// Skip this node, it's not an <a> tag
 		return
@@ -82,6 +86,49 @@ func (s *scraper) followLinkIfExistsInNode(n *html.Node) {
 	s.Scrape(href)
 }
 
+// tryAddAsset will check if the node is an asset reference
+// (link|img|script). If the node does represent an asset then
+// the asset will be created and added to the specified page
+func (s *scraper) tryAddAsset(n *html.Node, page *Page) {
+	if n.Type != html.ElementNode {
+		return
+	}
+
+	switch n.Data {
+	case "link":
+		if ok, src := attr(n, "href"); ok {
+			// TODO check rel=stylesheet || rel="" && ext=css
+			if fullURL, err := s.GetFullURL(src); err == nil {
+				page.Assets = append(page.Assets, &Asset{Type: AssetTypeStylesheet, URL: fullURL.String()})
+			}
+		}
+
+	case "img":
+		if ok, src := attr(n, "src"); ok {
+			if fullURL, err := s.GetFullURL(src); err == nil {
+				page.Assets = append(page.Assets, &Asset{Type: AssetTypeImage, URL: fullURL.String()})
+			}
+		}
+
+	case "script":
+		if ok, src := attr(n, "src"); ok {
+			if fullURL, err := s.GetFullURL(src); err == nil {
+				page.Assets = append(page.Assets, &Asset{Type: AssetTypeImage, URL: fullURL.String()})
+			}
+		}
+	}
+}
+
+func (s *scraper) GetFullURL(val string) (*url.URL, error) {
+	parsedVal, err := url.Parse(val)
+	if err != nil {
+		return nil, err
+	}
+
+	parsedVal = s.rootURL.ResolveReference(parsedVal)
+	return parsedVal, nil
+}
+
 func (s *scraper) GetFullURLWithoutHashAndQuery(val string) (*url.URL, error) {
 	parsedVal, err := url.Parse(val)
 	if err != nil {
@@ -104,6 +151,15 @@ func getHref(t *html.Node) (ok bool, href string) {
 		}
 	}
 	return
+}
+
+func attr(t *html.Node, name string) (bool, string) {
+	for _, a := range t.Attr {
+		if a.Key == name {
+			return true, a.Val
+		}
+	}
+	return false, ""
 }
 
 func httpStatusIsError(status int) bool {
