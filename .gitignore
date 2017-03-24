@@ -1,2 +1,4 @@
 # Ignore executable
 araucana
+debug
+launch.json
