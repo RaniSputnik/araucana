@@ -1,15 +1,19 @@
+# Notes
 
-### What Next?
+Rationale;
 
-Pick a better code-name!
+* Contain logic in library, easy to plug into web-server / command-line tool etc.
+* Keep the scrape library simple to use
+* Test business logic, avoid internals
+* (Generally) Readability over performance
 
 Codebase improvements;
 
-* Split Page Scraper from Site Crawler
-* Tests would not need to be end-to-end
+* Split page scraper from site crawler - two interfaces
+* Tests would not need to be end-to-end, could test parsing and crawling separately
 * Cap the number of concurrent scrape requests
 * Many more security measures for server, idle timeout, max header size, etc.
-* JSON errors from server
+* Better error format from server + JSON encoding
 
 Preparation for Deployment;
 
