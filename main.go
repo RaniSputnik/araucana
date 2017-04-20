@@ -22,6 +22,8 @@ func main() {
 
 	router := mux.NewRouter()
 	router.HandleFunc("/sitemap", sitemapHandler).Methods(http.MethodGet)
+	router.HandleFunc("/ping", pingHandler).Methods(http.MethodGet)
+	router.HandleFunc("/", indexHandler).Methods(http.MethodGet)
 
 	srv := &http.Server{
 		Handler:      wrapGlobalMiddleware(router),
@@ -67,6 +69,16 @@ var sitemapHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Reques
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(resBytes)
+})
+
+var pingHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("pong"))
+})
+
+var defaultSiteURL = "/sitemap?site=http://ryanloader.me"
+var indexHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	http.Redirect(w, r, defaultSiteURL, http.StatusFound)
 })
 
 func wrapGlobalMiddleware(handler http.Handler) http.Handler {
