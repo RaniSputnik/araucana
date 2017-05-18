@@ -22,18 +22,15 @@ type scrapeResult struct {
 
 func (s *crawler) Crawl(ctx context.Context, startAddr string) (map[string]*Page, error) {
 	results := make(map[string]*Page)
-	inflight := 0
-
 	cResults := make(chan *scrapeResult)
-	cDone := make(chan interface{})
-	defer close(cDone)
+	inflight := 0
 
 	startPageScrape := func(addr string) {
 		thisPage := &Page{addr, []*Asset{}, []string{}}
 		results[addr] = thisPage
 		inflight++
 
-		go s.scrape(thisPage, cResults, cDone)
+		go s.scrape(ctx, thisPage, cResults)
 	}
 
 	startPageScrape(startAddr)
@@ -62,7 +59,7 @@ func (s *crawler) Crawl(ctx context.Context, startAddr string) (map[string]*Page
 	return results, nil
 }
 
-func (s *crawler) scrape(page *Page, cResults chan<- *scrapeResult, done <-chan interface{}) {
+func (s *crawler) scrape(ctx context.Context, page *Page, cResults chan<- *scrapeResult) {
 	s.logger.Printf("Scraping %s", page.URL)
 
 	response, err := s.client.Get(page.URL)
@@ -102,7 +99,7 @@ func (s *crawler) scrape(page *Page, cResults chan<- *scrapeResult, done <-chan 
 
 	select {
 	case cResults <- &scrapeResult{NextURLs: page.Pages}:
-	case <-done:
+	case <-ctx.Done():
 	}
 }
 
