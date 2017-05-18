@@ -12,6 +12,7 @@ Codebase improvements;
 * Split page scraper from site crawler - two interfaces
 * Tests would not need to be end-to-end, could test parsing and crawling separately
 * Cap the number of concurrent scrape requests
+* Reduce mem usage with Trie for visited URLs
 * Many more security measures for server, idle timeout, max header size, etc.
 * Better error format from server + JSON encoding
 
