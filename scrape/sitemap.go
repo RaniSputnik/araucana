@@ -68,6 +68,13 @@ var defaultHTTPClient = &http.Client{
 // the site can not be reached for any reason. Partial
 // sitemaps will not be returned.
 func Site(ctx context.Context, site string) (*Sitemap, error) {
+	return SiteWithScraper(ctx, site, DefaultScraperFunc)
+}
+
+// SiteWithScraper is similar to Site but also allows you
+// to specify the scraper that you wish to use for parsing
+// urls and assets from a page
+func SiteWithScraper(ctx context.Context, site string, scraper Scraper) (*Sitemap, error) {
 	// Validation
 	if site == "" {
 		return nil, ErrURLInvalid
@@ -81,8 +88,9 @@ func Site(ctx context.Context, site string) (*Sitemap, error) {
 	c := &crawler{
 		rootURL: siteURL,
 		// TODO allow logger & client to be specified
-		client: defaultHTTPClient,
-		logger: log.New(os.Stdout, "", log.LstdFlags),
+		client:  defaultHTTPClient,
+		logger:  log.New(os.Stdout, "", log.LstdFlags),
+		scraper: scraper,
 	}
 	results, err := c.Crawl(ctx, siteURL.String())
 	if err != nil {

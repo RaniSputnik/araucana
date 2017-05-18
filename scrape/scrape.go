@@ -1,37 +1,38 @@
 package scrape
 
 import (
-	"context"
+	"io"
+	"net/url"
 
 	"golang.org/x/net/html"
 )
 
-func (s *crawler) scrape(ctx context.Context, page *Page, cResults chan<- *scrapeResult) {
-	s.logger.Printf("Scraping %s", page.URL)
+type Scraper interface {
+	Scrape(body io.Reader, page *Page) error
+}
 
-	response, err := s.client.Get(page.URL)
+type ScraperFunc func(body io.Reader, page *Page) error
+
+func (f ScraperFunc) Scrape(body io.Reader, page *Page) error {
+	return f(body, page)
+}
+
+var DefaultScraperFunc = ScraperFunc(func(body io.Reader, page *Page) error {
+	doc, err := html.Parse(body)
 	if err != nil {
-		cResults <- &scrapeResult{Err: ErrHTTPError}
-		return
-	}
-	defer response.Body.Close()
-
-	if httpStatusIsError(response.StatusCode) {
-		cResults <- &scrapeResult{Err: ErrHTTPError}
-		return
+		return err
 	}
 
-	doc, err := html.Parse(response.Body)
+	rootURL, err := url.Parse(page.URL)
 	if err != nil {
-		cResults <- &scrapeResult{Err: ErrParseError}
-		return
+		return err
 	}
 
 	var parseNextToken func(*html.Node)
 	parseNextToken = func(n *html.Node) {
-		if nextURL := s.getLinkIfExistsInNode(n); nextURL != "" {
+		if nextURL := getLinkIfExistsInNode(n, rootURL); nextURL != "" {
 			page.Pages = appendPageIfNotPresent(page.Pages, nextURL)
-		} else if asset := s.getAssetIfExistsInNode(n); asset != nil {
+		} else if asset := getAssetIfExistsInNode(n, rootURL); asset != nil {
 			page.Assets = append(page.Assets, asset)
 		}
 		for c := n.FirstChild; c != nil; c = c.NextSibling {
@@ -44,13 +45,10 @@ func (s *crawler) scrape(ctx context.Context, page *Page, cResults chan<- *scrap
 	// That could be a neat feature - find when you have duplicate
 	// links to a single resource
 
-	select {
-	case cResults <- &scrapeResult{NextURLs: page.Pages}:
-	case <-ctx.Done():
-	}
-}
+	return nil
+})
 
-func (s *crawler) getLinkIfExistsInNode(n *html.Node) string {
+func getLinkIfExistsInNode(n *html.Node, rootURL *url.URL) string {
 	if n.Type != html.ElementNode || n.Data != "a" {
 		// Skip this node, it's not an <a> tag
 		return ""
@@ -58,18 +56,18 @@ func (s *crawler) getLinkIfExistsInNode(n *html.Node) string {
 
 	ok, href := attr(n, "href")
 	if !ok {
-		s.logger.Printf("<a> tag appears to have no 'href' attribute")
+		//s.logger.Printf("<a> tag appears to have no 'href' attribute")
 		return ""
 	}
 
-	parsedHref, err := resolveURL(href, s.rootURL)
+	parsedHref, err := resolveURL(href, rootURL)
 	if err != nil {
-		s.logger.Printf("<a> tag has a href attribute (%s) we can't parse: '%v'", href, err)
+		//s.logger.Printf("<a> tag has a href attribute (%s) we can't parse: '%v'", href, err)
 		return ""
 	}
 
-	if parsedHref.Host != s.rootURL.Host {
-		s.logger.Printf("External link will not be followed '%s'", href)
+	if parsedHref.Host != rootURL.Host {
+		//s.logger.Printf("External link will not be followed '%s'", href)
 		return ""
 	}
 
@@ -80,7 +78,7 @@ func (s *crawler) getLinkIfExistsInNode(n *html.Node) string {
 	return parsedHref.String()
 }
 
-func (s *crawler) getAssetIfExistsInNode(n *html.Node) *Asset {
+func getAssetIfExistsInNode(n *html.Node, rootURL *url.URL) *Asset {
 	if n.Type != html.ElementNode {
 		return nil
 	}
@@ -98,7 +96,7 @@ func (s *crawler) getAssetIfExistsInNode(n *html.Node) *Asset {
 	}
 
 	if ok, src := attr(n, attrName); ok {
-		if fullURL, err := resolveURL(src, s.rootURL); err == nil {
+		if fullURL, err := resolveURL(src, rootURL); err == nil {
 			return &Asset{Type: assetType, URL: fullURL.String()}
 		}
 	}
