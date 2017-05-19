@@ -3,11 +3,9 @@ package scrape
 import (
 	"context"
 	"log"
-	"net/url"
 )
 
 type crawler struct {
-	rootURL    *url.URL
 	downloader Downloader
 	scraper    Scraper
 	logger     *log.Logger
