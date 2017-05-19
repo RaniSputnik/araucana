@@ -43,7 +43,7 @@ func (s *crawler) Crawl(ctx context.Context, startAddr string) (map[string]*Page
 				if _, alreadyScraped := results[nextURL]; !alreadyScraped {
 					startPageScrape(nextURL)
 				} else {
-					s.logger.Printf("We've already scraped '%s'", nextURL)
+					s.logger.Printf("We've already scraped '%s'\n", nextURL)
 				}
 			}
 
@@ -56,7 +56,7 @@ func (s *crawler) Crawl(ctx context.Context, startAddr string) (map[string]*Page
 }
 
 func (s *crawler) downloadAndScrapePage(ctx context.Context, page *Page, resultsChan chan<- *scrapeResult) {
-	s.logger.Printf("Scraping %s", page.URL)
+	s.logger.Printf("Scraping %s\n", page.URL)
 
 	body, err := s.downloader.Download(page.URL)
 	if body != nil {
