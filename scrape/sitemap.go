@@ -4,10 +4,8 @@ import (
 	"context"
 	"errors"
 	"log"
-	"net/http"
 	"net/url"
 	"os"
-	"time"
 )
 
 // Sitemap represents a heirachy of pages within a webiste
@@ -56,8 +54,31 @@ var (
 	ErrParseError = errors.New("Failed to parse link")
 )
 
-var defaultHTTPClient = &http.Client{
-	Timeout: time.Second * 30,
+// Config exposes options that can be passed to the SiteWithConfig
+// method in order to customize crawl behaviour.
+//
+// A custom scraper can be specified for parsing and reading pages
+// that are downloaded.
+// A custom downloader can be specified to provide retry logic and
+// more sophisticated fetching behaviour.
+// A custom logger can be provided to output to different locations.
+type Config struct {
+	Scraper    Scraper
+	Downloader Downloader
+	Logger     *log.Logger
+}
+
+// Fill in anything that wasn't specified with a default
+func (c *Config) applySensibleDefaults() {
+	if c.Scraper == nil {
+		c.Scraper = DefaultScraperFunc
+	}
+	if c.Downloader == nil {
+		c.Downloader = DefaultDownloaderFunc
+	}
+	if c.Logger == nil {
+		c.Logger = log.New(os.Stdout, "", log.LstdFlags)
+	}
 }
 
 // Site will generate a sitemap for the given URL.
@@ -68,13 +89,14 @@ var defaultHTTPClient = &http.Client{
 // the site can not be reached for any reason. Partial
 // sitemaps will not be returned.
 func Site(ctx context.Context, site string) (*Sitemap, error) {
-	return SiteWithScraper(ctx, site, DefaultScraperFunc)
+	return SiteWithConfig(ctx, site, &Config{})
 }
 
-// SiteWithScraper is similar to Site but also allows you
+// SiteWithConfig is similar to Site but also allows you
 // to specify the scraper that you wish to use for parsing
-// urls and assets from a page
-func SiteWithScraper(ctx context.Context, site string, scraper Scraper) (*Sitemap, error) {
+// urls and assets from a page and the client used for downloading
+// pages. If not provided, sensible defaults will be used
+func SiteWithConfig(ctx context.Context, site string, config *Config) (*Sitemap, error) {
 	// Validation
 	if site == "" {
 		return nil, ErrURLInvalid
@@ -84,13 +106,13 @@ func SiteWithScraper(ctx context.Context, site string, scraper Scraper) (*Sitema
 		return nil, ErrURLInvalid
 	}
 
+	config.applySensibleDefaults()
+
 	// Run the scraping of the site
 	c := &crawler{
 		rootURL: siteURL,
-		// TODO allow logger & client to be specified
-		client:  defaultHTTPClient,
-		logger:  log.New(os.Stdout, "", log.LstdFlags),
-		scraper: scraper,
+		logger:  config.Logger,
+		scraper: config.Scraper,
 	}
 	results, err := c.Crawl(ctx, siteURL.String())
 	if err != nil {

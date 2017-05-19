@@ -3,15 +3,14 @@ package scrape
 import (
 	"context"
 	"log"
-	"net/http"
 	"net/url"
 )
 
 type crawler struct {
-	rootURL *url.URL
-	client  *http.Client
-	logger  *log.Logger
-	scraper Scraper
+	rootURL    *url.URL
+	downloader Downloader
+	scraper    Scraper
+	logger     *log.Logger
 }
 
 type scrapeResult struct {
@@ -61,21 +60,21 @@ func (s *crawler) Crawl(ctx context.Context, startAddr string) (map[string]*Page
 func (s *crawler) downloadAndScrapePage(ctx context.Context, page *Page, resultsChan chan<- *scrapeResult) {
 	s.logger.Printf("Scraping %s", page.URL)
 
-	response, err := s.client.Get(page.URL)
-	if err != nil {
-		resultsChan <- &scrapeResult{Err: ErrHTTPError}
-		return
+	body, err := s.downloader.Download(page.URL)
+	if body != nil {
+		defer body.Close()
 	}
-	defer response.Body.Close()
 
-	if httpStatusIsError(response.StatusCode) {
+	if err != nil {
+		s.logger.Printf("Error when downloading: '%s'\n", err)
 		select {
 		case resultsChan <- &scrapeResult{Err: ErrHTTPError}:
 		case <-ctx.Done():
 		}
+		return
 	}
 
-	if err = s.scraper.Scrape(response.Body, page); err != nil {
+	if err = s.scraper.Scrape(body, page); err != nil {
 		select {
 		case resultsChan <- &scrapeResult{Err: err}:
 		case <-ctx.Done():
