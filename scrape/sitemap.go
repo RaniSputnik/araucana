@@ -110,9 +110,10 @@ func SiteWithConfig(ctx context.Context, site string, config *Config) (*Sitemap,
 
 	// Run the scraping of the site
 	c := &crawler{
-		rootURL: siteURL,
-		logger:  config.Logger,
-		scraper: config.Scraper,
+		rootURL:    siteURL,
+		logger:     config.Logger,
+		scraper:    config.Scraper,
+		downloader: config.Downloader,
 	}
 	results, err := c.Crawl(ctx, siteURL.String())
 	if err != nil {

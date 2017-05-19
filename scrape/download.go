@@ -22,14 +22,18 @@ var defaultHTTPClient = &http.Client{
 }
 
 var DefaultDownloaderFunc = DownloaderFunc(func(url string) (io.ReadCloser, error) {
+	var body io.ReadCloser
 	response, err := defaultHTTPClient.Get(url)
+	if response != nil {
+		body = response.Body
+	}
 	if err != nil {
-		return response.Body, err
+		return body, err
 	}
 
 	if httpStatusIsError(response.StatusCode) {
-		return response.Body, fmt.Errorf("Got error http status, '%s'", response.Status)
+		return body, fmt.Errorf("Got error http status, '%s'", response.Status)
 	}
 
-	return response.Body, nil
+	return body, nil
 })
